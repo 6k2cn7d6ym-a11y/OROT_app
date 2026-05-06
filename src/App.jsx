@@ -212,6 +212,16 @@ function formatWeekRange(weekStart) {
   return `${fmt(s)} - ${fmt(e)}`;
 }
 
+function formatRelativeTime(iso) {
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return "방금 전";
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+  return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function getCalendarDays(y, m) {
   const first = new Date(y, m, 1).getDay();
   const last = new Date(y, m + 1, 0).getDate();
@@ -1787,7 +1797,7 @@ function ChatTab({ messages, input, setInput, sendMessage, typing, bottomRef }) 
 }
 
 
-function FeedTab({ posts, toggleLike, toggleSave }) {
+function FeedTab({ posts, postsLoaded, toggleLike, toggleSave, onComposeOpen }) {
   const [filter, setFilter] = useState("전체");
   const tags = ["전체", "꿀팁", "감성", "일상"];
   const list = filter === "전체" ? posts : posts.filter((p) => p.tag === filter);
@@ -1815,50 +1825,162 @@ function FeedTab({ posts, toggleLike, toggleSave }) {
               {t}
             </button>
           ))}
-          <button style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: 40, fontSize: 12, border: `1px solid ${C.warm}`, color: C.warm }}>
+          <button
+            onClick={onComposeOpen}
+            style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: 40, fontSize: 12, border: `1px solid ${C.warm}`, color: C.warm }}
+          >
             + 올리기
           </button>
         </div>
       </div>
       <div style={{ padding: "16px 20px" }}>
-        {list.map((post, i) => (
-          <div
-            key={post.id}
-            className="up"
-            style={{
-              background: C.surface,
-              borderRadius: 16,
-              padding: "22px",
-              marginBottom: 14,
-              border: `1px solid ${C.border}`,
-              animationDelay: `${i * 0.05}s`,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.card, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
-                  {post.emoji}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{post.user}</div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{post.time}</div>
-                </div>
-              </div>
-              <span style={{ fontSize: 10, padding: "4px 12px", borderRadius: 20, background: C.card, color: C.sub }}>{post.tag}</span>
-            </div>
-            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.8, fontWeight: 300, marginBottom: 18 }}>{post.content}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 20, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-              <button onClick={() => toggleLike(post.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 16, color: post.liked ? "#D4695A" : C.muted, transition: "color .2s" }}>♥</span>
-                <span style={{ fontSize: 13, color: post.liked ? C.warm : C.muted, fontWeight: post.liked ? 500 : 400 }}>{post.likes}</span>
-              </button>
-              <button onClick={() => toggleSave(post.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 15, color: post.savedByMe ? C.warm : C.muted, transition: "color .2s" }}>{post.savedByMe ? "★" : "☆"}</span>
-                <span style={{ fontSize: 13, color: post.savedByMe ? C.warm : C.muted, fontWeight: post.savedByMe ? 500 : 400 }}>{post.saved}</span>
-              </button>
-            </div>
+        {!postsLoaded ? (
+          <div style={{ padding: "60px 20px", textAlign: "center", color: C.muted, fontSize: 13, fontWeight: 300 }}>
+            불러오는 중...
           </div>
-        ))}
+        ) : list.length === 0 ? (
+          <div style={{ padding: "60px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 14 }}>🌿</div>
+            <div style={{ fontSize: 14, color: C.sub, fontWeight: 300, lineHeight: 1.7 }}>
+              {filter === "전체" ? "아직 글이 없어요." : `'${filter}' 글이 아직 없어요.`}<br />
+              첫 이야기를 들려주실래요?
+            </div>
+            <button
+              onClick={onComposeOpen}
+              style={{ marginTop: 20, padding: "10px 22px", borderRadius: 40, fontSize: 12, border: `1px solid ${C.warm}`, color: C.warm }}
+            >
+              + 올리기
+            </button>
+          </div>
+        ) : (
+          list.map((post, i) => (
+            <div
+              key={post.id}
+              className="up"
+              style={{
+                background: C.surface,
+                borderRadius: 16,
+                padding: "22px",
+                marginBottom: 14,
+                border: `1px solid ${C.border}`,
+                animationDelay: `${i * 0.05}s`,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.card, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                    {post.emoji}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{post.user}</div>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{post.time}</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, padding: "4px 12px", borderRadius: 20, background: C.card, color: C.sub }}>{post.tag}</span>
+              </div>
+              <div style={{ fontSize: 14, color: C.text, lineHeight: 1.8, fontWeight: 300, marginBottom: 18, whiteSpace: "pre-wrap" }}>{post.content}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 20, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+                <button onClick={() => toggleLike(post.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 16, color: post.liked ? "#D4695A" : C.muted, transition: "color .2s" }}>♥</span>
+                  <span style={{ fontSize: 13, color: post.liked ? C.warm : C.muted, fontWeight: post.liked ? 500 : 400 }}>{post.likes}</span>
+                </button>
+                <button onClick={() => toggleSave(post.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 15, color: post.savedByMe ? C.warm : C.muted, transition: "color .2s" }}>{post.savedByMe ? "★" : "☆"}</span>
+                  <span style={{ fontSize: 13, color: post.savedByMe ? C.warm : C.muted, fontWeight: post.savedByMe ? 500 : 400 }}>{post.saved}</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ───────── 글 올리기 모달 ─────────
+function PostComposer({ onClose, onSubmit }) {
+  const [content, setContent] = useState("");
+  const [tag, setTag] = useState("일상");
+  const [submitting, setSubmitting] = useState(false);
+  const tags = ["꿀팁", "감성", "일상"];
+
+  const handleSubmit = async () => {
+    if (!content.trim() || submitting) return;
+    setSubmitting(true);
+    const ok = await onSubmit(content, tag);
+    setSubmitting(false);
+    if (ok) onClose();
+    else alert("글 올리기 실패. 다시 시도해주세요.");
+  };
+
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+      background: C.bg, zIndex: 200,
+      display: "flex", flexDirection: "column",
+      maxWidth: 480, margin: "0 auto",
+    }}>
+      <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={onClose} style={{ fontSize: 22, color: C.sub, padding: 4 }}>←</button>
+        <div style={{ fontFamily: "'Noto Serif KR',serif", fontSize: 17 }}>새 이야기</div>
+        <button
+          onClick={handleSubmit}
+          disabled={!content.trim() || submitting}
+          style={{
+            fontSize: 13,
+            color: content.trim() && !submitting ? C.warm : C.muted,
+            fontWeight: 500,
+            padding: "4px 8px",
+          }}
+        >
+          {submitting ? "올리는 중..." : "올리기"}
+        </button>
+      </div>
+
+      <div style={{ flex: 1, padding: "20px 24px", overflowY: "auto" }}>
+        <div style={{ fontSize: 11, color: C.muted, fontWeight: 400, marginBottom: 8 }}>분위기</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {tags.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTag(t)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 40,
+                fontSize: 12,
+                border: `1px solid ${tag === t ? C.dark : C.border}`,
+                background: tag === t ? C.dark : "transparent",
+                color: tag === t ? "#fff" : C.muted,
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="어떤 이야기를 들려주실래요?"
+          maxLength={500}
+          rows={10}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            fontFamily: "inherit",
+            fontSize: 14,
+            color: C.text,
+            lineHeight: 1.8,
+            resize: "none",
+            outline: "none",
+          }}
+        />
+
+        <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, textAlign: "right", marginTop: 12 }}>
+          {content.length} / 500
+        </div>
       </div>
     </div>
   );
@@ -2591,7 +2713,7 @@ function OrotCareModal({ onClose, subscription, consent, onSubscribed, onCancell
           </div>
           <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, lineHeight: 1.7, marginBottom: 32, padding: "12px 14px", background: C.card, borderRadius: 8 }}>
             * 본 서비스는 의료 행위가 아니며, 진단·치료를 제공하지 않습니다.<br />
-            * 위기 상황에서는 자살예방상담전화 109 등 공식 지원체계로 연결을 안내해드립니다.
+            * 위기 상황에서는 자살예방상담전화 1393 등 공식 지원체계로 연결을 안내해드립니다.
           </div>
 
           {/* 가격 옵션 */}
@@ -2700,7 +2822,7 @@ function OrotCareModal({ onClose, subscription, consent, onSubscribed, onCancell
           {/* 면책 문구 */}
           <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, lineHeight: 1.7, marginBottom: 20, padding: "12px 14px", background: C.card, borderRadius: 8 }}>
             * 본 서비스는 의료 행위가 아니며, 진단·치료를 제공하지 않습니다.<br />
-            * 위기 상황에서는 자살예방상담전화 109 등 공식 지원체계로 연결을 안내해드립니다.
+            * 위기 상황에서는 자살예방상담전화 1393 등 공식 지원체계로 연결을 안내해드립니다.
           </div>
 
           {/* 동의 체크 */}
@@ -3763,7 +3885,7 @@ function Settings({ onClose, userGu }) {
 // ═══════════════════════════════════════════════════════════
 
 function MainApp({ authed = true, onSignupStart, onLoginStart }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tab, setTab] = useState("홈");
   const [moodLog, setMoodLog] = useState({});
   const [moodLogsByDate, setMoodLogsByDate] = useState({}); // { "2026-05-04": [{label, time}, ...] }
@@ -3788,7 +3910,9 @@ function MainApp({ authed = true, onSignupStart, onLoginStart }) {
       continueTimerRef.current = null;
     }
   };
-  const [posts, setPosts] = useState(FEED_POSTS);
+  const [posts, setPosts] = useState([]);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const bottomRef = useRef(null);
 
   // 게스트 모드에서 액션 시 호출 - 로그인 모달 띄움
@@ -4087,8 +4211,148 @@ function MainApp({ authed = true, onSignupStart, onLoginStart }) {
     }
   };
 
-  const toggleLike = (id) => setPosts((p) => p.map((x) => (x.id === id ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 } : x)));
-  const toggleSave = (id) => setPosts((p) => p.map((x) => (x.id === id ? { ...x, savedByMe: !x.savedByMe, saved: x.savedByMe ? x.saved - 1 : x.saved + 1 } : x)));
+  // 피드 로드 (posts + 내 좋아요/저장 상태)
+  const fetchPosts = async () => {
+    try {
+      const { data: postsData, error: postsErr } = await supabase
+        .from("posts")
+        .select("id, user_display, emoji, tag, content, likes_count, saves_count, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (postsErr) {
+        console.error("posts 로드 실패:", postsErr);
+        setPostsLoaded(true);
+        return;
+      }
+
+      let likedIds = new Set();
+      let savedIds = new Set();
+      if (user) {
+        const { data: likes } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .eq("user_id", user.id);
+        likedIds = new Set((likes || []).map((l) => l.post_id));
+
+        const { data: saves } = await supabase
+          .from("post_saves")
+          .select("post_id")
+          .eq("user_id", user.id);
+        savedIds = new Set((saves || []).map((s) => s.post_id));
+      }
+
+      const formatted = (postsData || []).map((p) => ({
+        id: p.id,
+        user: p.user_display,
+        emoji: p.emoji || "🌿",
+        tag: p.tag,
+        content: p.content,
+        likes: p.likes_count,
+        saved: p.saves_count,
+        liked: likedIds.has(p.id),
+        savedByMe: savedIds.has(p.id),
+        time: formatRelativeTime(p.created_at),
+      }));
+
+      setPosts(formatted);
+      setPostsLoaded(true);
+    } catch (e) {
+      console.error("피드 로드 예외:", e);
+      setPostsLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const toggleLike = async (id) => {
+    if (!requireAuth()) return;
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    // 낙관적 업데이트
+    setPosts((p) => p.map((x) => x.id === id
+      ? { ...x, liked: !x.liked, likes: x.liked ? x.likes - 1 : x.likes + 1 }
+      : x));
+    try {
+      if (post.liked) {
+        await supabase.from("post_likes").delete()
+          .eq("user_id", user.id).eq("post_id", id);
+      } else {
+        await supabase.from("post_likes").insert({ user_id: user.id, post_id: id });
+      }
+    } catch (e) {
+      console.error("좋아요 실패:", e);
+      // 롤백
+      setPosts((p) => p.map((x) => x.id === id
+        ? { ...x, liked: post.liked, likes: post.likes }
+        : x));
+    }
+  };
+
+  const toggleSave = async (id) => {
+    if (!requireAuth()) return;
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    setPosts((p) => p.map((x) => x.id === id
+      ? { ...x, savedByMe: !x.savedByMe, saved: x.savedByMe ? x.saved - 1 : x.saved + 1 }
+      : x));
+    try {
+      if (post.savedByMe) {
+        await supabase.from("post_saves").delete()
+          .eq("user_id", user.id).eq("post_id", id);
+      } else {
+        await supabase.from("post_saves").insert({ user_id: user.id, post_id: id });
+      }
+    } catch (e) {
+      console.error("저장 실패:", e);
+      setPosts((p) => p.map((x) => x.id === id
+        ? { ...x, savedByMe: post.savedByMe, saved: post.saved }
+        : x));
+    }
+  };
+
+  // 글 올리기 — content + tag (emoji는 tag별 자동)
+  const addPost = async (content, tag) => {
+    if (!requireAuth()) return false;
+    if (!content.trim() || !tag) return false;
+    const emojiByTag = { "꿀팁": "✨", "감성": "🌙", "일상": "🌿" };
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .insert({
+          user_id: user.id,
+          user_display: profile?.nickname || "이름 없음",
+          emoji: emojiByTag[tag] || "🌿",
+          tag,
+          content: content.trim(),
+        })
+        .select()
+        .single();
+      if (error) {
+        console.error("글 올리기 실패:", error);
+        return false;
+      }
+      // 새 글 맨 위에 박기
+      setPosts((p) => [{
+        id: data.id,
+        user: data.user_display,
+        emoji: data.emoji,
+        tag: data.tag,
+        content: data.content,
+        likes: 0,
+        saved: 0,
+        liked: false,
+        savedByMe: false,
+        time: "방금 전",
+      }, ...p]);
+      return true;
+    } catch (e) {
+      console.error("글 올리기 예외:", e);
+      return false;
+    }
+  };
 
   const streak = calcStreak(moodLog);
   const negDays = countConsecNegative(moodLog);
@@ -4132,7 +4396,8 @@ function MainApp({ authed = true, onSignupStart, onLoginStart }) {
         )}
         {tab === "홈" && diaryView && <DiaryTab moodLog={moodLog} moodLogsByDate={moodLogsByDate} setDiaryView={setDiaryView} />}
         {tab === "털어놓기" && <ChatTab messages={messages} input={input} setInput={setInput} sendMessage={sendMessage} typing={typing} bottomRef={bottomRef} />}
-        {tab === "피드" && <FeedTab posts={posts} toggleLike={toggleLike} toggleSave={toggleSave} />}
+        {tab === "피드" && <FeedTab posts={posts} postsLoaded={postsLoaded} toggleLike={toggleLike} toggleSave={toggleSave} onComposeOpen={() => requireAuth() && setComposerOpen(true)} />}
+        {composerOpen && <PostComposer onClose={() => setComposerOpen(false)} onSubmit={addPost} />}
         {tab === "우리 동네" && <NeighborhoodTab userGu={userGu} openGuModal={() => setGuModalOpen(true)} />}
         {tab === "마이" && !diaryView && (
           <MyPage

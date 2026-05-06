@@ -1,0 +1,32 @@
+{
+  "name": "오롯",
+  "short_name": "오롯",
+  "description": "1인 여성가구 정서 케어 앱",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F4EF",
+  "theme_color": "#9B5E45",
+  "icons": [
+    {
+      "src": "/icons/orot-android-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/orot-android-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/orot-android-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
