@@ -35,7 +35,7 @@ export default function OrotCareModal({ onClose }) {
         </div>
 
         <div style={{ fontSize: 13, color: C.sub, fontWeight: 300, lineHeight: 1.85, marginBottom: 36, maxWidth: 320 }}>
-          오롯 케어는 어떤 결로 박힐지<br />
+          오롯 케어를 어떤 모습으로 만들지<br />
           아직 다듬는 중이에요.<br />
           준비되면 알려드릴게요.
         </div>

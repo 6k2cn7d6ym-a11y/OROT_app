@@ -17,7 +17,7 @@ export default function ChatTab({ messages, input, setInput, sendMessage, typing
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 0" }}>
         {messages.map((msg, i) => {
-          // 위기 카드 결 — AI 결처럼 왼쪽에 박힘, 페이지 갈음 X
+          // 위기 카드 — AI 메시지처럼 왼쪽에 표시, 페이지 전환 X
           if (msg.from === "crisis_card") {
             return (
               <div

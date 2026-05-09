@@ -101,33 +101,34 @@ export const GU_LIST = [
 
 // 자치구별 1인가구 지원센터 (3개월에 한 번 갱신 예정)
 // 출처: 사용자 직접 모집 (씽글벙글 서울 + 자치구청)
-// admin_connected: 자치구 admin 시스템과 부여번호 연결 여부 (운영 중 자치구별 활성화)
+// 발급번호 시스템 connected 여부는 DB의 get_connected_districts() 함수로 가져옴
+// (useConnectedDistricts hook 사용)
 export const GU_CENTERS = {
-  "강남구": { name: "강남구청 사회보장과", phone: "02-3423-5874", admin_connected: false },
-  "강동구": { name: "강동구 1인가구지원센터", phone: "02-479-1179", admin_connected: false },
-  "강북구": { name: null, phone: null, admin_connected: false },
-  "강서구": { name: "강서구 가족센터", phone: "02-2606-2017", admin_connected: false },
-  "관악구": { name: "관악구청 복지정책과", phone: "02-879-5841", admin_connected: false },
-  "광진구": { name: "광진구청 복지정책과", phone: "02-450-7305", admin_connected: false },
-  "구로구": { name: "구로구청 통합돌봄과", phone: "02-860-5445", admin_connected: false },
-  "금천구": { name: "금천구청 복지정책과", phone: "02-2627-1004", admin_connected: false },
-  "노원구": { name: "노원구청 복지정책과", phone: "02-2116-3676", admin_connected: false },
-  "도봉구": { name: "도봉구 가족센터 2관", phone: "02-995-6800", admin_connected: false },
-  "동대문구": { name: "동대문구 1인가구 지원센터", phone: "010-7459-3301", admin_connected: false },
-  "동작구": { name: "동작구청 복지정책과", phone: "02-820-9046", admin_connected: false },
-  "마포구": { name: "마포구 가족센터", phone: "070-7467-0790", admin_connected: false },
-  "서대문구": { name: "서대문구 1인가구지원센터", phone: "070-4108-9160", admin_connected: false },
-  "서초구": { name: "서초구 1인가구지원센터", phone: "02-2155-8977", admin_connected: false },
-  "성동구": { name: "성동구 1인가구지원센터", phone: "02-2281-7715", admin_connected: false },
-  "성북구": { name: "성북복지재단 1인가구 지원센터", phone: "070-4271-5490", admin_connected: false },
-  "송파구": { name: "송파구 가족센터", phone: "070-7450-4331", admin_connected: false },
-  "양천구": { name: "양천구 가족센터", phone: "070-7433-3422", admin_connected: false },
-  "영등포구": { name: "영등포구 1인가구지원센터", phone: "02-846-5432", admin_connected: false },
-  "용산구": { name: "용산구 가족센터", phone: "02-797-9184", admin_connected: false },
-  "은평구": { name: "은평구 1인가구지원센터", phone: "070-7492-7901", admin_connected: false },
-  "종로구": { name: null, phone: null, admin_connected: false },
-  "중구": { name: "중구 1인가구지원센터", phone: "02-6953-1299", admin_connected: false },
-  "중랑구": { name: "중랑구청 복지정책과", phone: "02-2094-1622", admin_connected: false },
+  "강남구": { name: "강남구청 사회보장과", phone: "02-3423-5874" },
+  "강동구": { name: "강동구 1인가구지원센터", phone: "02-479-1179" },
+  "강북구": { name: null, phone: null },
+  "강서구": { name: "강서구 가족센터", phone: "02-2606-2017" },
+  "관악구": { name: "관악구청 복지정책과", phone: "02-879-5841" },
+  "광진구": { name: "광진구청 복지정책과", phone: "02-450-7305" },
+  "구로구": { name: "구로구청 통합돌봄과", phone: "02-860-5445" },
+  "금천구": { name: "금천구청 복지정책과", phone: "02-2627-1004" },
+  "노원구": { name: "노원구청 복지정책과", phone: "02-2116-3676" },
+  "도봉구": { name: "도봉구 가족센터 2관", phone: "02-995-6800" },
+  "동대문구": { name: "동대문구 1인가구 지원센터", phone: "010-7459-3301" },
+  "동작구": { name: "동작구청 복지정책과", phone: "02-820-9046" },
+  "마포구": { name: "마포구 가족센터", phone: "070-7467-0790" },
+  "서대문구": { name: "서대문구 1인가구지원센터", phone: "070-4108-9160" },
+  "서초구": { name: "서초구 1인가구지원센터", phone: "02-2155-8977" },
+  "성동구": { name: "성동구 1인가구지원센터", phone: "02-2281-7715" },
+  "성북구": { name: "성북복지재단 1인가구 지원센터", phone: "070-4271-5490" },
+  "송파구": { name: "송파구 가족센터", phone: "070-7450-4331" },
+  "양천구": { name: "양천구 가족센터", phone: "070-7433-3422" },
+  "영등포구": { name: "영등포구 1인가구지원센터", phone: "02-846-5432" },
+  "용산구": { name: "용산구 가족센터", phone: "02-797-9184" },
+  "은평구": { name: "은평구 1인가구지원센터", phone: "070-7492-7901" },
+  "종로구": { name: null, phone: null },
+  "중구": { name: "중구 1인가구지원센터", phone: "02-6953-1299" },
+  "중랑구": { name: "중랑구청 복지정책과", phone: "02-2094-1622" },
 };
 
 // ─────────────────────────────────────────────
@@ -155,9 +156,9 @@ export const EMOTION_KEYWORDS = [
 ];
 
 // ─────────────────────────────────────────────
-// 자치구 정신건강복지센터 (25개) — 위기 결 안전망
-// 출처: blutouch.net (보건복지부 인증 결, 2026-05 기준)
-// ※ 중랑구 전화번호 다른 결도 있음 (02-3422-5921 / 02-3422-3804) — 검수 결 박을 자리
+// 자치구 정신건강복지센터 (25개) — 위기 안전망
+// 출처: blutouch.net (보건복지부 인증, 2026-05 기준)
+// ※ 중랑구 전화번호 다른 출처도 있음 (02-3422-5921 / 02-3422-3804) — 검수 필요
 // ─────────────────────────────────────────────
 
 export const MENTAL_HEALTH_CENTERS = {
@@ -189,7 +190,7 @@ export const MENTAL_HEALTH_CENTERS = {
 };
 
 // ─────────────────────────────────────────────
-// 위기 외부 통화 4개 (모든 사용자 결 — 안전망)
+// 위기 외부 통화 4개 (모든 사용자 — 안전망)
 // ─────────────────────────────────────────────
 
 export const CRISIS_NUMBERS = [
@@ -200,9 +201,9 @@ export const CRISIS_NUMBERS = [
 ];
 
 // ─────────────────────────────────────────────
-// 위기 키워드 (챗봇 메시지 결 검사 — sendMessage 결로)
-// 표준 결로 박음. 출시 후 사용자 결 따라 다듬어질 결.
-// 부분 일치 결 (txt.includes) 박음 — 어형 변화 다 잡기 위해.
+// 위기 키워드 (챗봇 메시지 검사 — sendMessage에서)
+// 표준 키워드. 출시 후 사용자 피드백 따라 다듬어질 예정.
+// 부분 일치 (txt.includes) — 어형 변화 잡기 위해.
 // ─────────────────────────────────────────────
 
 export const CRISIS_KEYWORDS = [

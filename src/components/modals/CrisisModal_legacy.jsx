@@ -1,10 +1,10 @@
-// ⚠️ LEGACY — import X. 자리만 살림.
-// 옛 결: 페이지 통째로 갈음 박는 모달 결 (챗봇 흐름 끊김)
-// 갈음된 결: components/shared/CrisisCard.jsx (챗봇 메시지 안 카드 결)
-// 사용자 직접 진입 결 (Settings·홈탭 결) 박을 때 결로 살릴 가치 있어 살림.
+// ⚠️ LEGACY — import 안 함. 참고용으로만 보관.
+// 옛 구조: 페이지 전체를 덮는 모달 (챗봇 흐름 끊김)
+// 대체된 곳: components/shared/CrisisCard.jsx (챗봇 메시지 안 카드)
+// 사용자 직접 진입(Settings·홈탭) 추가할 때 참고할 가치가 있어 보관.
 import { C, CRISIS_NUMBERS, MENTAL_HEALTH_CENTERS } from "../../lib/constants";
 
-// 위기 외부 통화 화면 — 모든 사용자 결 (안전망)
+// 위기 외부 통화 화면 — 모든 사용자 (안전망)
 export default function CrisisModalLegacy({ onClose, userGu }) {
   const center = userGu ? MENTAL_HEALTH_CENTERS[userGu] : null;
 
@@ -155,7 +155,7 @@ export default function CrisisModalLegacy({ onClose, userGu }) {
             textAlign: "center",
           }}
         >
-          전화 박는 결 어려우시면<br />
+          전화하기 어려우시면<br />
           오로시와 더 이야기 나누셔도 돼요.
         </div>
       </div>

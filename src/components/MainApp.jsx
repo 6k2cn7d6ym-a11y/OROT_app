@@ -107,7 +107,7 @@ export default function MainApp({ authed = true, onSignupStart, onLoginStart }) 
           const log = {};
           const byDate = {};
           for (const m of moods) {
-            log[m.date] = m.mood_label; // 마지막 mood가 박힘
+            log[m.date] = m.mood_label; // 마지막 mood가 덮어씀
             if (!byDate[m.date]) byDate[m.date] = [];
             byDate[m.date].push({ label: m.mood_label, time: m.created_at });
           }
@@ -328,9 +328,9 @@ export default function MainApp({ authed = true, onSignupStart, onLoginStart }) 
     setMessages((p) => [...p, { from: "user", text: txt, created_at: new Date().toISOString() }]);
     setTyping(true);
 
-    // 위기 키워드 감지 — 박힌 키워드 결 결로 메시지 결에 위기 카드 박음 + crisis_signals insert
-    // 페이지 갈음 X — 챗봇 흐름 안 끊음. chat 결 호출 그대로 진행.
-    // 정규화 결: 띄어쓰기 빼고 매치 ("죽고 싶" / "죽고싶" 둘 다 잡힘)
+    // 위기 키워드 감지 — 매칭되면 메시지 목록에 위기 카드 추가 + crisis_signals insert
+    // 페이지 전환 X — 챗봇 흐름 안 끊음. chat 호출 그대로 진행.
+    // 정규화: 띄어쓰기 빼고 매치 ("죽고 싶" / "죽고싶" 둘 다 잡힘)
     const normalized = txt.replace(/\s/g, "");
     const matched = CRISIS_KEYWORDS.filter((kw) =>
       normalized.includes(kw.replace(/\s/g, ""))
@@ -345,8 +345,8 @@ export default function MainApp({ authed = true, onSignupStart, onLoginStart }) 
           context: txt.slice(0, 200),
         });
       } catch (e) {
-        // 테이블 결 없거나 RLS 결 막혀도 챗봇 결 안 깨짐
-        console.error("crisis_signals 결 박지 못함:", e);
+        // 테이블 없거나 RLS에 막혀도 챗봇은 정상 동작
+        console.error("crisis_signals 저장 실패:", e);
       }
     }
 
@@ -494,7 +494,7 @@ export default function MainApp({ authed = true, onSignupStart, onLoginStart }) 
         console.error("글 올리기 실패:", error);
         return false;
       }
-      // 새 글 맨 위에 박기
+      // 새 글 맨 위에 추가
       setPosts((p) => [{
         id: data.id,
         user: data.user_display,

@@ -1,9 +1,9 @@
-// ⚠️ LEGACY — import X. 자리만 살림.
-// 옛 결: 구독(Mock 결제) + B 동의 한 결로 묶여있던 결
-// 분리된 결:
-//   - 새 OrotCareModal.jsx (준비 중 결)
-//   - Settings.jsx 의 MyPage 안 정서 동행 토글
-// 구독 결 결정 박힌 후 이 결 참고해서 새로 박을 결.
+// ⚠️ LEGACY — import 안 함. 참고용으로만 보관.
+// 옛 구조: 구독(Mock 결제) + B 동의가 한 모달에 묶여있었음
+// 분리된 곳:
+//   - 새 OrotCareModal.jsx (준비 중 안내)
+//   - Settings.jsx 안 정서 동행 토글
+// 구독 방향이 결정되면 이 코드를 참고해서 새로 작성할 것.
 import { useState, useEffect } from "react";
 import { C } from "../../lib/constants";
 import { useAuth } from "../../lib/AuthContext";

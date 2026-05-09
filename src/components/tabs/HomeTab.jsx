@@ -156,7 +156,7 @@ export default function HomeTab({
         </div>
       )}
 
-      {/* 부정 3일 이상 유도 배너 (7일 이상이면 위기 진입 결도 박힘) */}
+      {/* 부정 3일 이상 유도 배너 (7일 이상이면 위기 진입 버튼도 표시) */}
       {negDays >= 3 && (
         <div className="up" style={{ background: "#FDF0EA", border: `1px solid ${C.warmLight}`, borderRadius: 16, padding: "18px 20px", marginBottom: 20 }}>
           <div style={{ fontFamily: "'Noto Serif KR',serif", fontSize: 15, color: C.warm, marginBottom: 6 }}>

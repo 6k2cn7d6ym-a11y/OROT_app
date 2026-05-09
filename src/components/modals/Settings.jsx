@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { dateKey, yesterdayKey, targetWeekStartKey, formatWeekRange } from "../../utils/date";
 import OrotCareModal from "./OrotCareModal";
+import { useConnectedDistricts } from "../../lib/useConnectedDistricts";
 
 // ───────── 마이페이지 ─────────
 export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, streak, setDiaryView, openSettings, openGuModal, onCrisisOpen }) {
@@ -29,7 +30,7 @@ export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, s
 
     (async () => {
       try {
-        // 이미 박힌 거 있는지
+        // 이미 저장된 게 있는지
         const { data: existing } = await supabase
           .from("daily_summaries")
           .select("summary")
@@ -161,7 +162,7 @@ export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, s
             아직 비어있어요
           </div>
           <div style={{ fontSize: 12, color: C.sub, fontWeight: 300, lineHeight: 1.7, marginBottom: 20 }}>
-            기분 기록과 대화, 정서 결 정리는<br />
+            기분 기록과 대화, 정서 정리는<br />
             로그인한 분만 이용하실 수 있어요.
           </div>
           <button
@@ -314,7 +315,7 @@ export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, s
         </div>
       )}
 
-      {/* 오롯 케어 — 구독 결 (준비 중) */}
+      {/* 오롯 케어 — 구독 (준비 중) */}
       <button
         onClick={() => setCareModalOpen(true)}
         style={{
@@ -344,7 +345,7 @@ export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, s
         <span style={{ fontSize: 14, color: C.muted }}>›</span>
       </button>
 
-      {/* 오롯 케어 모달 (준비 중 결) */}
+      {/* 오롯 케어 모달 (준비 중) */}
       {careModalOpen && (
         <OrotCareModal onClose={() => setCareModalOpen(false)} />
       )}
@@ -372,7 +373,7 @@ export function MyPage({ authed, onSignupStart, onLoginStart, userGu, moodLog, s
         </>
       )}
 
-      {/* 위기 진입 결 — 외부 통화 4개 + 자치구 정신건강복지센터 */}
+      {/* 위기 진입 — 외부 통화 4개 + 자치구 정신건강복지센터 */}
       <button
         onClick={onCrisisOpen}
         style={{
@@ -434,25 +435,47 @@ function SettingsItem({ label, sub, onClick, danger }) {
 export default function Settings({ onClose, userGu }) {
   const [view, setView] = useState("main"); // main / nickname / gov_id / consent / emergency / emergency_add
   const [nickname, setNickname] = useState("");
-  const [govId, setGovId] = useState("");
-  const [savedAt, setSavedAt] = useState(null);
   const [verifiedAt, setVerifiedAt] = useState(null);
+  const [govAssignedId, setGovAssignedId] = useState(""); // 연결된 발급번호 (표시용)
   const [saving, setSaving] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [newContact, setNewContact] = useState({ name: "", relationship: "가족", phone: "" });
-  const [consent, setConsent] = useState(null); // null | { counselor_consent, counselor_consented_at }
+  const [consent, setConsent] = useState(null); // null | { counselor_consent, counselor_consented_at, district_consent_summary, district_consent_mood }
   const [consentToggling, setConsentToggling] = useState(false);
+
+  // 발급번호 검색·연결
+  const [formGovId, setFormGovId] = useState("");
+  const [formName, setFormName] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchedRow, setSearchedRow] = useState(null); // null | district_registrations row
+  const [searchError, setSearchError] = useState("");
+  const [connectAgreed, setConnectAgreed] = useState({
+    req_view: false,
+    req_crisis: false,
+    req_chat: false,
+    opt_summary: false,
+    opt_mood: false,
+  });
+  const [connecting, setConnecting] = useState(false);
+
+  // D 동의 토글 (연결 후)
+  const [districtSummaryToggling, setDistrictSummaryToggling] = useState(false);
+  const [districtMoodToggling, setDistrictMoodToggling] = useState(false);
+
   const center = userGu ? GU_CENTERS[userGu] : null;
-  const adminConnected = center?.admin_connected || false;
   const { user, profile, refreshProfile } = useAuth();
+  const { connected: connectedDistricts } = useConnectedDistricts();
+  const isGuConnected = userGu ? connectedDistricts.includes(userGu) : false;
   const consentOn = !!consent?.counselor_consent;
+  const summaryOn = !!consent?.district_consent_summary;
+  const moodOn = !!consent?.district_consent_mood;
+  const requiredAllAgreed = connectAgreed.req_view && connectAgreed.req_crisis && connectAgreed.req_chat;
 
   // 프로필 값 채우기 (useAuth().profile 변화 감지)
   useEffect(() => {
     if (profile) {
       setNickname(profile.nickname || "");
-      setGovId(profile.gov_assigned_id || "");
-      setSavedAt(profile.gov_assigned_id ? "saved" : null);
+      setGovAssignedId(profile.gov_assigned_id || "");
       setVerifiedAt(profile.verified_at);
     }
   }, [profile]);
@@ -465,7 +488,7 @@ export default function Settings({ onClose, userGu }) {
       try {
         const { data: con } = await supabase
           .from("consent_states")
-          .select("counselor_consent, counselor_consented_at")
+          .select("counselor_consent, counselor_consented_at, district_consent_summary, district_consent_mood")
           .eq("user_id", user.id)
           .maybeSingle();
         if (!cancelled) setConsent(con);
@@ -501,7 +524,7 @@ export default function Settings({ onClose, userGu }) {
         );
       if (error) throw error;
     } catch (e) {
-      console.error("정서 동행 동의 갈음 실패:", e);
+      console.error("정서 동행 동의 변경 실패:", e);
       setConsent(prev); // 롤백
       alert("저장 실패. 다시 시도해주세요.");
     } finally {
@@ -509,7 +532,7 @@ export default function Settings({ onClose, userGu }) {
     }
   };
 
-  // emergency_contacts만 자체 fetch (AuthContext에 안 박힘)
+  // emergency_contacts만 자체 fetch (AuthContext에 없음)
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -596,21 +619,134 @@ export default function Settings({ onClose, userGu }) {
     }
   };
 
-  const saveGovId = async () => {
-    if (!govId.trim() || saving) return;
-    setSaving(true);
+  // 발급번호 검색 — match_district_registration RPC 사용 (SECURITY DEFINER로 RLS 우회)
+  const searchRegistration = async () => {
+    if (!formGovId.trim() || !formName.trim() || searching) return;
+    setSearching(true);
+    setSearchError("");
     try {
-      if (user) {
-        await supabase.from("profiles").update({ gov_assigned_id: govId.trim() }).eq("id", user.id);
-        await refreshProfile();
-        setSavedAt("saved");
-        setView("main");
+      const { data, error } = await supabase.rpc("match_district_registration", {
+        gov_id_input: formGovId.trim(),
+        name_input: formName.trim(),
+      });
+      if (error) throw error;
+      // RPC 결과가 array일 수도 single object일 수도 있음
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) {
+        setSearchError("발급번호 또는 이름이 일치하지 않아요. 다시 확인해주세요.");
+        setSearchedRow(null);
+      } else {
+        setSearchedRow(row);
       }
     } catch (e) {
-      console.error("부여번호 저장 실패:", e);
+      console.error("발급번호 검색 실패:", e);
+      setSearchError("검색 실패. 잠시 후 다시 시도해주세요.");
+      setSearchedRow(null);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // 검색 화면으로 돌아가기 (다시 검색)
+  const clearSearch = () => {
+    setSearchedRow(null);
+    setSearchError("");
+    setConnectAgreed({ req_view: false, req_crisis: false, req_chat: false, opt_summary: false, opt_mood: false });
+  };
+
+  // 연결 — 3개 테이블 update + refreshProfile
+  const connect = async () => {
+    if (!searchedRow || !user || connecting || !requiredAllAgreed) return;
+    if (searchedRow.gu !== userGu) return; // 자치구 불일치 (UI에서 차단되지만 한 번 더 확인)
+    setConnecting(true);
+    const now = new Date().toISOString();
+    try {
+      // 1. district_registrations update
+      const { error: regErr } = await supabase
+        .from("district_registrations")
+        .update({
+          linked_user_id: user.id,
+          linked_at: now,
+          status: "linked",
+        })
+        .eq("id", searchedRow.id);
+      if (regErr) throw regErr;
+
+      // 2. profiles update
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({
+          gov_assigned_id: searchedRow.gov_assigned_id,
+          verified_at: now,
+        })
+        .eq("id", user.id);
+      if (profErr) throw profErr;
+
+      // 3. consent_states upsert (선택 2개만 저장 — 필수 3개는 발급번호 입력 자체가 동의)
+      const { error: conErr } = await supabase
+        .from("consent_states")
+        .upsert(
+          {
+            user_id: user.id,
+            district_consent_summary: connectAgreed.opt_summary,
+            district_consent_mood: connectAgreed.opt_mood,
+            updated_at: now,
+          },
+          { onConflict: "user_id" }
+        );
+      if (conErr) throw conErr;
+
+      // 4. profile 갱신 → verified_at 설정되어 State A로 자동 전환
+      await refreshProfile();
+
+      // 5. consent state 갱신
+      setConsent((p) => ({
+        ...(p || {}),
+        district_consent_summary: connectAgreed.opt_summary,
+        district_consent_mood: connectAgreed.opt_mood,
+      }));
+
+      // 6. 검색 상태 초기화 (clearSearch — State A로 전환)
+      clearSearch();
+      setFormGovId("");
+      setFormName("");
+    } catch (e) {
+      console.error("발급번호 연결 실패:", e);
+      alert("연결 실패. 다시 시도해주세요.");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  // D 동의 토글 (연결 후)
+  const toggleDistrictConsent = async (key) => {
+    if (!user) return;
+    const isSummary = key === "district_consent_summary";
+    const togglingSetter = isSummary ? setDistrictSummaryToggling : setDistrictMoodToggling;
+    const currentVal = isSummary ? summaryOn : moodOn;
+    togglingSetter(true);
+    const prev = consent;
+    const next = !currentVal;
+    const now = new Date().toISOString();
+    setConsent((p) => ({ ...(p || {}), [key]: next }));
+    try {
+      const { error } = await supabase
+        .from("consent_states")
+        .upsert(
+          {
+            user_id: user.id,
+            [key]: next,
+            updated_at: now,
+          },
+          { onConflict: "user_id" }
+        );
+      if (error) throw error;
+    } catch (e) {
+      console.error(`${key} 변경 실패:`, e);
+      setConsent(prev); // 롤백
       alert("저장 실패. 다시 시도해주세요.");
     } finally {
-      setSaving(false);
+      togglingSetter(false);
     }
   };
 
@@ -686,12 +822,10 @@ export default function Settings({ onClose, userGu }) {
             <SettingsItem
               label="자치구 부여번호"
               sub={
-                !adminConnected
+                verifiedAt
+                  ? "활성화됨 ✓"
+                  : !isGuConnected
                   ? "연결 준비 중"
-                  : verifiedAt
-                  ? `활성화됨 ✓`
-                  : govId
-                  ? `${govId} (확인 대기 중)`
                   : "등록 안 됨"
               }
               onClick={() => setView("gov_id")}
@@ -738,10 +872,92 @@ export default function Settings({ onClose, userGu }) {
         </div>
       )}
 
-      {/* 부여번호 화면 */}
+      {/* 부여번호 화면 — 4단계 분기 */}
       {view === "gov_id" && (
-        <div style={{ flex: 1, padding: "32px 24px" }}>
-          {!adminConnected ? (
+        <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px" }}>
+          {/* State A: 연결됨 */}
+          {verifiedAt ? (
+            <>
+              <div style={{ background: C.surface, border: `1px solid ${C.warmLight}`, borderRadius: 14, padding: "20px 22px", marginBottom: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 18 }}>✓</span>
+                  <div style={{ fontSize: 14, color: C.text, fontWeight: 500 }}>연결되었어요</div>
+                </div>
+                <div style={{ fontSize: 12, color: C.sub, fontWeight: 300, lineHeight: 1.8 }}>
+                  <div style={{ marginBottom: 4 }}>📍 {userGu}</div>
+                  <div style={{ marginBottom: 4 }}>발급번호: {govAssignedId}</div>
+                  <div>연결일: {new Date(verifiedAt).toLocaleDateString("ko-KR")}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, letterSpacing: 0.5, marginBottom: 8, paddingLeft: 4 }}>
+                자치구 담당자가 보는 정보 (선택)
+              </div>
+
+              {/* D 동의 선택 2 토글 — 매일·주간 요약 */}
+              <div style={{ background: C.surface, border: `1px solid ${summaryOn ? C.warmLight : C.border}`, borderRadius: 14, padding: "16px 18px", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 4 }}>매일·주간 요약 봄</div>
+                    <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
+                      자치구 담당자가 매일·주간 정서 정리를 봅니다.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleDistrictConsent("district_consent_summary")}
+                    disabled={districtSummaryToggling}
+                    aria-label={`매일·주간 요약 동의 ${summaryOn ? "끄기" : "켜기"}`}
+                    style={{
+                      width: 44, height: 26, borderRadius: 13,
+                      background: summaryOn ? C.warm : C.border,
+                      padding: 3, display: "flex", alignItems: "center",
+                      justifyContent: summaryOn ? "flex-end" : "flex-start",
+                      transition: "background .2s, justify-content .2s",
+                      opacity: districtSummaryToggling ? 0.6 : 1,
+                      cursor: districtSummaryToggling ? "default" : "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(26,16,10,.2)" }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* D 동의 선택 2 토글 — 기분 캘린더 */}
+              <div style={{ background: C.surface, border: `1px solid ${moodOn ? C.warmLight : C.border}`, borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 4 }}>기분 캘린더 봄</div>
+                    <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, lineHeight: 1.6 }}>
+                      자치구 담당자가 기분 기록 캘린더를 봅니다.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleDistrictConsent("district_consent_mood")}
+                    disabled={districtMoodToggling}
+                    aria-label={`기분 캘린더 동의 ${moodOn ? "끄기" : "켜기"}`}
+                    style={{
+                      width: 44, height: 26, borderRadius: 13,
+                      background: moodOn ? C.warm : C.border,
+                      padding: 3, display: "flex", alignItems: "center",
+                      justifyContent: moodOn ? "flex-end" : "flex-start",
+                      transition: "background .2s, justify-content .2s",
+                      opacity: districtMoodToggling ? 0.6 : 1,
+                      cursor: districtMoodToggling ? "default" : "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(26,16,10,.2)" }} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, lineHeight: 1.7, padding: "12px 14px", background: C.card, borderRadius: 8 }}>
+                필수 항목 (닉네임·자치구·발급번호 보기 / 위기 신호 보기 / 앱 안 채팅)은 발급번호 연결 자체가 동의입니다.
+              </div>
+            </>
+          ) : !isGuConnected ? (
+            /* State B: 자치구가 연결 안 됨 */
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 22px" }}>
               <div style={{ fontSize: 14, color: C.text, fontWeight: 400, marginBottom: 8, lineHeight: 1.6 }}>
                 {userGu}는 부여번호 시스템<br />연결 준비 중이에요
@@ -751,31 +967,184 @@ export default function Settings({ onClose, userGu }) {
                 1인가구 지원 자원이 활성화돼요.
               </div>
             </div>
-          ) : (
+          ) : !searchedRow ? (
+            /* State C-1: 검색 폼 */
             <>
-              <div style={{ fontSize: 13, color: C.sub, marginBottom: 8, fontWeight: 300, lineHeight: 1.7 }}>
-                {userGu}청에서 발급받은 번호를 입력해주세요.<br />
-                확인 후 1인가구 자원 연결이 활성화돼요.
+              <div style={{ fontSize: 13, color: C.sub, marginBottom: 16, fontWeight: 300, lineHeight: 1.7 }}>
+                {userGu}청에서 발급받은 번호와<br />
+                신청자 이름을 박아주세요.
               </div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 300, marginBottom: 6 }}>발급번호</div>
               <input
                 type="text"
-                value={govId}
-                onChange={(e) => setGovId(e.target.value)}
-                placeholder="부여번호"
-                style={{ width: "100%", padding: "14px 16px", fontSize: 15, border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, marginBottom: 12, marginTop: 12, fontFamily: "inherit" }}
+                value={formGovId}
+                onChange={(e) => setFormGovId(e.target.value)}
+                placeholder="발급번호"
+                style={{ width: "100%", padding: "14px 16px", fontSize: 15, border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, marginBottom: 14, fontFamily: "inherit" }}
               />
-              {savedAt && !verifiedAt && (
-                <div style={{ fontSize: 12, color: C.warm, fontWeight: 300, marginBottom: 16 }}>⏳ {userGu}청 확인 대기 중</div>
-              )}
-              {verifiedAt && (
-                <div style={{ fontSize: 12, color: "#5C8A5C", fontWeight: 400, marginBottom: 16 }}>✓ 1인가구 자원 활성화됨</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 300, marginBottom: 6 }}>이름</div>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="이름"
+                style={{ width: "100%", padding: "14px 16px", fontSize: 15, border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, marginBottom: 16, fontFamily: "inherit" }}
+              />
+              {searchError && (
+                <div style={{ fontSize: 12, color: "#C44545", fontWeight: 300, marginBottom: 14, lineHeight: 1.6 }}>
+                  {searchError}
+                </div>
               )}
               <button
-                onClick={saveGovId}
-                disabled={!govId.trim() || saving}
-                style={{ width: "100%", background: govId.trim() ? C.dark : C.border, color: "#fff", padding: "15px", borderRadius: 8, fontSize: 14, cursor: govId.trim() ? "pointer" : "default" }}
+                onClick={searchRegistration}
+                disabled={!formGovId.trim() || !formName.trim() || searching}
+                style={{
+                  width: "100%",
+                  background: (formGovId.trim() && formName.trim()) ? C.dark : C.border,
+                  color: "#fff",
+                  padding: "15px",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  cursor: (formGovId.trim() && formName.trim() && !searching) ? "pointer" : "default",
+                }}
               >
-                {saving ? "저장 중..." : "저장"}
+                {searching ? "검색 중..." : "검색"}
+              </button>
+            </>
+          ) : searchedRow.gu !== userGu ? (
+            /* State C-2: 자치구 불일치 거부 */
+            <>
+              <div style={{ background: "#FDF0EA", border: `1px solid ${C.warmLight}`, borderRadius: 12, padding: "20px 22px", marginBottom: 16 }}>
+                <div style={{ fontSize: 14, color: C.warm, fontWeight: 500, marginBottom: 10 }}>
+                  자치구가 다릅니다
+                </div>
+                <div style={{ fontSize: 12, color: C.sub, fontWeight: 300, lineHeight: 1.8 }}>
+                  발급번호 자치구: <strong>{searchedRow.gu}</strong><br />
+                  설정된 자치구: <strong>{userGu}</strong><br /><br />
+                  홈 화면 좌측 상단 자치구를 변경한 후 다시 시도해주세요.
+                </div>
+              </div>
+              <button
+                onClick={clearSearch}
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  color: C.sub,
+                  padding: "14px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+              >
+                다시 검색
+              </button>
+            </>
+          ) : (
+            /* State C-3: 발견 + 동의 5 + 연결 */
+            <>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, marginBottom: 8 }}>
+                  발급된 정보를 찾았어요
+                </div>
+                <div style={{ fontSize: 12, color: C.sub, fontWeight: 300, lineHeight: 1.8 }}>
+                  <div>📍 {searchedRow.gu}</div>
+                  <div>발급번호: {searchedRow.gov_assigned_id}</div>
+                  <div>이름: {searchedRow.real_name}</div>
+                  {searchedRow.issued_at && (
+                    <div>발행일: {new Date(searchedRow.issued_at).toLocaleDateString("ko-KR")}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 4 }}>
+                동의 항목 (필수 3 + 선택 2)
+              </div>
+              <div style={{ fontSize: 11, color: C.sub, fontWeight: 300, lineHeight: 1.7, marginBottom: 14 }}>
+                자치구 담당자는 사람입니다. 챗봇 원본 대화는 보지 않습니다.
+              </div>
+
+              {/* 필수 3 */}
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: C.warm, fontWeight: 500, letterSpacing: 0.5, marginBottom: 8 }}>필수</div>
+                {[
+                  { key: "req_view", label: "자치구 담당자가 닉네임·자치구·발급번호 봄" },
+                  { key: "req_crisis", label: "자치구 담당자가 위기 신호 봄" },
+                  { key: "req_chat", label: "자치구 담당자와 앱 안 채팅" },
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    onClick={() => setConnectAgreed((p) => ({ ...p, [item.key]: !p[item.key] }))}
+                    style={{ padding: "8px 4px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 4,
+                      border: `1.5px solid ${connectAgreed[item.key] ? C.warm : C.muted}`,
+                      background: connectAgreed[item.key] ? C.warm : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      {connectAgreed[item.key] && <div style={{ color: "#fff", fontSize: 11, lineHeight: 1 }}>✓</div>}
+                    </div>
+                    <div style={{ fontSize: 12, color: C.text, fontWeight: 300, lineHeight: 1.5 }}>{item.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 선택 2 */}
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: C.muted, fontWeight: 500, letterSpacing: 0.5, marginBottom: 8 }}>선택 (이 화면에서 토글로 변경 가능)</div>
+                {[
+                  { key: "opt_summary", label: "자치구 담당자가 매일·주간 요약 봄" },
+                  { key: "opt_mood", label: "자치구 담당자가 기분 캘린더 봄" },
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    onClick={() => setConnectAgreed((p) => ({ ...p, [item.key]: !p[item.key] }))}
+                    style={{ padding: "8px 4px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 4,
+                      border: `1.5px solid ${connectAgreed[item.key] ? C.warm : C.muted}`,
+                      background: connectAgreed[item.key] ? C.warm : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      {connectAgreed[item.key] && <div style={{ color: "#fff", fontSize: 11, lineHeight: 1 }}>✓</div>}
+                    </div>
+                    <div style={{ fontSize: 12, color: C.sub, fontWeight: 300, lineHeight: 1.5 }}>{item.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={connect}
+                disabled={!requiredAllAgreed || connecting}
+                style={{
+                  width: "100%",
+                  background: requiredAllAgreed ? C.warm : C.border,
+                  color: "#fff",
+                  padding: "15px",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  marginBottom: 8,
+                  cursor: (requiredAllAgreed && !connecting) ? "pointer" : "default",
+                }}
+              >
+                {connecting ? "연결 중..." : "연결"}
+              </button>
+              <button
+                onClick={clearSearch}
+                disabled={connecting}
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  color: C.sub,
+                  padding: "12px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              >
+                다시 검색
               </button>
             </>
           )}
@@ -827,7 +1196,7 @@ export default function Settings({ onClose, userGu }) {
             </div>
             {consentOn && consent?.counselor_consented_at && (
               <div style={{ fontSize: 11, color: C.muted, fontWeight: 300, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-                동의 박은 결: {new Date(consent.counselor_consented_at).toLocaleDateString("ko-KR")}
+                동의한 날: {new Date(consent.counselor_consented_at).toLocaleDateString("ko-KR")}
               </div>
             )}
           </div>

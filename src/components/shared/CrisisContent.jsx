@@ -1,8 +1,8 @@
 import { C, CRISIS_NUMBERS, MENTAL_HEALTH_CENTERS } from "../../lib/constants";
 
-// 위기 결 본문 — 외각·헤더·padding 결 X
-// 박는 자리: Settings 'crisis' view + CrisisModal
-// 챗봇 안 결은 별도 (CrisisCard.jsx 결 — chat-bubble 스타일)
+// 위기 화면 본문 — 외곽·헤더·padding 없음 (부모에서 처리)
+// 사용처: CrisisModal (HomeTab·MyPage에서 진입)
+// 챗봇 안 카드는 별도 (CrisisCard.jsx — chat-bubble 스타일)
 export default function CrisisContent({ userGu }) {
   const center = userGu ? MENTAL_HEALTH_CENTERS[userGu] : null;
 
@@ -120,7 +120,7 @@ export default function CrisisContent({ userGu }) {
           textAlign: "center",
         }}
       >
-        전화 박는 결 어려우시면<br />
+        전화하기 어려우시면<br />
         오로시와 더 이야기 나누셔도 돼요.
       </div>
     </div>

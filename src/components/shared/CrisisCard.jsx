@@ -1,8 +1,8 @@
 import { C, CRISIS_NUMBERS, MENTAL_HEALTH_CENTERS } from "../../lib/constants";
 
-// 챗봇 메시지 결 안 박히는 위기 카드 — 페이지 갈음 X, 흐름 안 끊음
-// 박는 자리: ChatTab의 messages 결 안에 type 결로 박힘
-// 톤: 차분한 결, 위협 X
+// 챗봇 메시지 안에 표시되는 위기 카드 — 페이지 전환 X, 흐름 안 끊음
+// 사용처: ChatTab의 messages 배열에 type으로 추가됨
+// 톤: 차분하게, 위협 X
 export default function CrisisCard({ userGu }) {
   const center = userGu ? MENTAL_HEALTH_CENTERS[userGu] : null;
 
@@ -38,7 +38,7 @@ export default function CrisisCard({ userGu }) {
           marginBottom: 14,
         }}
       >
-        지금 너무 힘드시다면<br />아래 결로 닿을 수 있어요.
+        지금 너무 힘드시다면<br />아래 번호로 연락하실 수 있어요.
       </div>
 
       {/* 외부 통화 4개 */}

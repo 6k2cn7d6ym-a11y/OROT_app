@@ -5,10 +5,10 @@ import AuthFlow from "./flows/AuthFlow";
 import SetupFlow from "./flows/SetupFlow";
 
 // 진입점
-// 단일 stage 변수로 박음 - 깜빡임 X
+// 단일 stage 변수로 관리 - 깜빡임 없음
 // stage: "loading" | "guest" | "auth_login" | "auth_signup" | "setup" | "main"
 //
-// 핵심 결:
+// 핵심 규칙:
 // - 세션 / 프로필 관리는 AuthProvider 가 다 함
 // - AppRouter 는 useAuth() 결과로 stage 결정만 (계산 로직 X, await X)
 // - 탭 전환 시 TOKEN_REFRESHED 와도 화면 안 바뀜 (initialized 한 번 박으면 끝)

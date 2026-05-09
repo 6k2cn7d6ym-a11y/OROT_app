@@ -1,8 +1,8 @@
 import { C } from "../../lib/constants";
 import CrisisContent from "../shared/CrisisContent";
 
-// 위기 모달 — 사용자 직접 진입 결로 박힘 (HomeTab 결, 미래에 ChatTab 결도)
-// 챗봇 자동 결은 별도 (ChatTab 안 CrisisCard 결)
+// 위기 모달 — 사용자 직접 진입 (HomeTab·MyPage, 미래에 ChatTab도)
+// 챗봇 자동 표시는 별도 (ChatTab 안 CrisisCard)
 export default function CrisisModal({ onClose, userGu }) {
   return (
     <div
