@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { CACHE_KEY, CACHE_TTL_MS, EMOTION_KEYWORDS } from "../lib/constants";
+import {
+  OPENAPI_KEY,
+  OPENAPI_SERVICE,
+  CACHE_KEY,
+  CACHE_TTL_MS,
+  EMOTION_KEYWORDS,
+} from "../lib/constants";
 
 // 한 행이 정서 카테고리인지
 function matchEmotion(row) {
@@ -30,42 +36,12 @@ function normalizeRow(row) {
   };
 }
 
-// 페이지네이션 fetch (1000건씩) — Supabase Edge Function 프록시 결로
+// 페이지네이션 fetch (1000건씩)
 async function fetchProgramsPage(start, end) {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!SUPABASE_URL || !SUPABASE_ANON) {
-    throw new Error("Supabase 환경변수가 박혀있지 않아요");
-  }
-
-  const url = `${SUPABASE_URL}/functions/v1/programs-proxy?start=${start}&end=${end}`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_ANON,
-      Authorization: `Bearer ${SUPABASE_ANON}`,
-    },
-  });
-
-  if (!res.ok) {
-    let detail = "";
-    try {
-      const errJson = await res.json();
-      detail = errJson.error || "";
-    } catch {}
-    throw new Error(`Proxy ${res.status}${detail ? ` — ${detail}` : ""}`);
-  }
-
+  const url = `https://openapi.seoul.go.kr:8088/${OPENAPI_KEY}/json/${OPENAPI_SERVICE}/${start}/${end}/`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API ${res.status}`);
   const json = await res.json();
-
-  // Edge Function이 에러 결로 응답 가능
-  if (json.error) {
-    throw new Error(json.error);
-  }
-
-  // 서울 API 응답 형식: { tbPartcptn: { RESULT, list_total_count, row } }
-  const OPENAPI_SERVICE = "tbPartcptn";
-
   if (json.RESULT && json.RESULT.CODE && json.RESULT.CODE !== "INFO-000") {
     throw new Error(`API: ${json.RESULT.MESSAGE || json.RESULT.CODE}`);
   }
@@ -132,10 +108,9 @@ export function usePrograms() {
   const [programs, setPrograms] = useState(() => readCache() || []);
   const [loading, setLoading] = useState(() => readCache() === null);
   const [error, setError] = useState(null);
-  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
-    if (retryToken === 0 && readCache() !== null) return;
+    if (readCache() !== null) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -154,17 +129,9 @@ export function usePrograms() {
     return () => {
       cancelled = true;
     };
-  }, [retryToken]);
+  }, []);
 
-  // 다시 시도 — 캐시 비우고 재호출
-  const retry = () => {
-    try {
-      localStorage.removeItem(CACHE_KEY);
-    } catch {}
-    setRetryToken((n) => n + 1);
-  };
-
-  return { programs, loading, error, retry };
+  return { programs, loading, error };
 }
 
 // "5월 9일 시작" / "5월 1일부터"
