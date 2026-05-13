@@ -38,7 +38,7 @@ function normalizeRow(row) {
 
 // 페이지네이션 fetch (1000건씩)
 async function fetchProgramsPage(start, end) {
-  const url = `http://openapi.seoul.go.kr:8088/${OPENAPI_KEY}/json/${OPENAPI_SERVICE}/${start}/${end}/`;
+  const url = `https://openapi.seoul.go.kr:8088/${OPENAPI_KEY}/json/${OPENAPI_SERVICE}/${start}/${end}/`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`API ${res.status}`);
   const json = await res.json();
