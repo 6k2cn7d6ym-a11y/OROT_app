@@ -1,0 +1,26 @@
+name: Sync Programs
+
+on:
+  schedule:
+    # 매일 새벽 3시 KST (= UTC 18:00 전날)
+    - cron: '0 18 * * *'
+  workflow_dispatch:  # 수동 실행 결로도 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync programs
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-programs.mjs
